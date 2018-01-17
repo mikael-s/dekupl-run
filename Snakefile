@@ -546,7 +546,7 @@ rule filter_transcript_counts:
 #
 rule test_diff_counts:
   input:
-    counts = MASKED_COUNTS,
+    counts = RAW_COUNTS, # this is the difference with the transcriptome version, we take the raw counts here, not the transcriptome-filtered ones
     sample_conditions = SAMPLE_CONDITIONS_FULL,
     binary = TTEST_FILTER
   output:
