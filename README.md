@@ -1,6 +1,8 @@
+In this branch of DE-Kupl, for when the input data is whole-genome data.
+
 # dekupl-run
 
-DE-kupl is a pipeline that finds differentially expressed k-mers between RNA-Seq datasets under The MIT License.
+DE-kupl is a pipeline that finds differentially expressed k-mers between ~~RNA-Seq~~ any datasets.
 
 Dekupl-run handles the first part of the [DE-kupl pipeline](https://github.com/Transipedia/dekupl) from raw FASTQ to
 the production of contigs from differentially expressed k-mers.
@@ -76,7 +78,6 @@ The output directory of a DE-kupl will have the following content :
 ├── kmer_counts
 │   ├── normalization_factors.tsv
 │   ├── raw-counts.tsv.gz
-│   ├── noGENCODE-counts.tsv.gz
 │   ├── {sample}.jf
 │   ├── {sample}.txt.gz
 │   ├── ...
@@ -92,12 +93,7 @@ FileName | Description
 `diff-counts.tsv.gz` | Contains k-mers counts from `noGENCODE-counts.tsv.gz` that have passed the differential testing. Output format is a tsv with the following columns: `kmer pvalue meanA meanB log2FC [SAMPLES]`.
 `merged-diff-counts.tsv.gz` | Contains assembled k-mers from `diff-counts.tsv.gz`. Output format is a tsv with the following columns: `nb_merged_kmers contig kmer pvalue meanA meanB log2FC [SAMPLES]`.
 `raw-counts.tsv.gz` | Containins raw k-mer counts of all libraries that have been filtered with the reccurency filters.
-`noGENCODE-counts.tsv.gz` | Containtains k-mer counts filtered from `raw-counts.tsv` with the k-mers from the reference transcription (ex: GENCODE by default).
 `sample_conditions_full.tsv` | Tabulated file with samples names, conditions and normalization factors. `sample_conditions.tsv` is the sample
-
-## Whole-genome data
-
-If you are interested in running a DE-Kupl-style analysis on whole-genome data, i.e. without using a reference transcriptome, please use [this branch](https://github.com/Transipedia/dekupl-run/tree/wgs).
 
 ## FAQ
 - if new samples are added to the config.json, make sure to remove the `metadata` folder in order to force SnakeMake to re-make all targets that depends on this file
