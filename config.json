@@ -4,7 +4,7 @@
   "kmer_length": 31,
   "lib_type": "rf",
   "output_dir":"DEkupl_result",
-  "diff_method": "Ttest",
+  "diff_method": "DESeq2",
   "chunk_size":1000000,
   "r1_suffix": "_1.fastq.gz",
   "r2_suffix": "_2.fastq.gz",

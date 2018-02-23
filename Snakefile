@@ -65,7 +65,6 @@ FASTQ_DIR       = config['fastq_dir']
 BIN_DIR         = "bin"
 TMP_DIR         = temp(TMP_DIR + "/dekupl_tmp")
 GENE_EXP_DIR    = OUTPUT_DIR + "/gene_expression"
-KALLISTO_DIR    = GENE_EXP_DIR + "/kallisto"
 COUNTS_DIR      = OUTPUT_DIR + "/kmer_counts"
 KMER_DE_DIR     = OUTPUT_DIR + "/" + CONDITION_A + "_vs_" + CONDITION_B + "_kmer_counts"
 METADATA_DIR    = OUTPUT_DIR + "/metadata"
@@ -74,7 +73,6 @@ LOGS            = OUTPUT_DIR + "/Logs"
 
 # FILES
 RAW_COUNTS                  = COUNTS_DIR    + "/raw-counts.tsv.gz"
-MASKED_COUNTS               = COUNTS_DIR    + "/masked-counts.tsv.gz"
 NORMALIZATION_FACTORS       = COUNTS_DIR  + "/normalization_factors.tsv"
 DIFF_COUNTS                 = KMER_DE_DIR   + "/diff-counts.tsv.gz"
 PVALUE_ALL                  = KMER_DE_DIR   + "/raw_pvals.txt.gz"
@@ -83,13 +81,6 @@ ASSEMBLIES_FASTA            = KMER_DE_DIR   + "/merged-diff-counts.fa.gz"
 ASSEMBLIES_BAM              = KMER_DE_DIR   + "/merged-diff-counts.bam"
 SAMPLE_CONDITIONS           = METADATA_DIR  + "/sample_conditions.tsv"
 SAMPLE_CONDITIONS_FULL      = METADATA_DIR  + "/sample_conditions_full.tsv"
-default_file                = "".join(REFERENCE_DIR + "/gencode.v24.transcripts.fa.gz")
-REF_TRANSCRIPT_FASTA        = config['transcript_fasta'] if 'transcript_fasta' in config else default_file
-REF_TRANSCRIPT_COUNTS       = REFERENCE_DIR + "/" + getbasename(REF_TRANSCRIPT_FASTA) + ".tsv.gz"
-TRANSCRIPT_TO_GENE_MAPPING  = REFERENCE_DIR + "/transcript_to_gene_mapping.tsv"
-KALLISTO_INDEX              = REFERENCE_DIR + "/" + getbasename(REF_TRANSCRIPT_FASTA) + "-kallisto.idx"
-TRANSCRIPT_COUNTS           = KALLISTO_DIR  + "/transcript_counts.tsv.gz"
-GENE_COUNTS                 = KALLISTO_DIR  + "/gene_counts.tsv.gz"
 DEGS                        = GENE_EXP_DIR  + "/" + CONDITION_A + "vs" + CONDITION_B + "-DEGs.tsv"
 CHECKING_PLOTS              = KMER_DE_DIR   + "/checking_plots.pdf"
 DIST_MATRIX                 = GENE_EXP_DIR  + "/clustering_of_samples.pdf"
@@ -101,7 +92,6 @@ REVCOMP         = BIN_DIR + "/revCompFastq.pl"
 DEKUPL_COUNTER  = BIN_DIR + "/dekupl-counter"
 DIFF_FILTER     = BIN_DIR + "/diffFilter.pl"
 TTEST_FILTER    = BIN_DIR + "/TtestFilter"
-KALLISTO        = BIN_DIR + "/kallisto"
 JOIN_COUNTS     = BIN_DIR + "/joinCounts"
 MERGE_COUNTS    = BIN_DIR + "/mergeCounts.pl"
 MERGE_TAGS      = BIN_DIR + "/mergeTags"
@@ -114,7 +104,6 @@ ZCAT            = "gunzip -c"
 SORT            = "sort"
 
 # SET MEMORY/THREAD USAGE FOR EACH RULE
-MAX_MEM_KALLISTO  = 4000
 MAX_MEM_JELLYFISH = 8000
 MAX_MEM_SORT      = 3000
 
@@ -273,65 +262,6 @@ rule join_counts:
           echo -e \"******\" >>{log.exec_time}
 
           """)
-
-###############################################################################
-#
-# STEP 3: FILTER-OUT KNOWN K-MERS
-#         Default: Download gencode transcripts set and remove the k-mer occuring this
-#         set from the one found in the experimental data
-#
-
-# 3.2 Counts k-mer of all transcript (for further filtration)
-rule ref_transcript_count:
-  input: REF_TRANSCRIPT_FASTA
-  output: temp(REF_TRANSCRIPT_FASTA + ".jf")
-  threads: MAX_CPU_JELLYFISH
-  resources: ram = MAX_MEM_JELLYFISH
-  run:
-    options = "-m {KMER_LENGTH} -s 10000 -t {threads} -o {output}"
-    if LIB_TYPE == "unstranded":
-      options += " -C"
-    shell("{JELLYFISH_COUNT} " + options + " <({ZCAT} {input})")
-
-rule ref_transcript_dump:
-  input: REF_TRANSCRIPT_FASTA + ".jf"
-  output: REF_TRANSCRIPT_COUNTS
-  log :
-    exec_time = LOGS + "/jellyfishDumpRefTrancriptCounts_exec_time.log"
-  threads: MAX_CPU_SORT
-  resources: ram = MAX_MEM_SORT
-  shell: """
-
-         echo -e \"******\" >{log.exec_time}
-         echo -e \"start of ref_transcript_dump : $(date)\n\" >>{log.exec_time}
-
-
-        {JELLYFISH_DUMP} -c {input} | {SORT} -k 1 -S {resources.ram}G --parallel {threads}| pigz -p {threads} -c > {output}
-
-        echo -e \"\nend of rule ref_transcript_dump : $(date)\n\" >>{log.exec_time}
-        echo -e \"******\" >>{log.exec_time}
-
-        """
-
-# 3.3 Filter counter k-mer that are present in the transcriptome set
-rule filter_transcript_counts:
-  input:
-    counts = RAW_COUNTS,
-    ref_transcript_counts = REF_TRANSCRIPT_COUNTS
-  output: MASKED_COUNTS
-  log:
-    exec_time = LOGS + "/filter_transcript_counts_exec_time.log"
-  shell: """
-         echo -e \"******\" >{log.exec_time}
-         echo -e \"start of filter_transcript_counts : $(date)\n\" >>{log.exec_time}
-
-         {DIFF_FILTER} {input.ref_transcript_counts} {input.counts} | gzip -c > {output}
-
-
-         echo -e \"\nend of filter_transcript_counts : $(date)\n\" >>{log.exec_time}
-         echo -e \"******\" >>{log.exec_time}
-
-         """
 
 ###############################################################################
 #
