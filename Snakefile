@@ -62,7 +62,7 @@ OUTPUT_DIR      = config['output_dir']
 FASTQ_DIR       = config['fastq_dir']
 
 # DIRECTORIES
-BIN_DIR         = "bin"
+BIN_DIR         = workflow.basedir + "/bin"
 TMP_DIR         = temp(TMP_DIR + "/dekupl_tmp")
 GENE_EXP_DIR    = OUTPUT_DIR + "/gene_expression"
 COUNTS_DIR      = OUTPUT_DIR + "/kmer_counts"
@@ -205,14 +205,17 @@ rule jellyfish_count:
     shell("echo -e \"******\" >{log.exec_time}")
     shell("echo -e \"start of rule jellyfish_count (raw counts) : $(date)\n\" >>{log.exec_time}")
 
+    r1_pipe = "{ZCAT} {input.r1}" if input.r1.endswith(".gz") else "cat {input.r1}"
+    r2_pipe = "{ZCAT} {input.r2}" if input.r2.endswith(".gz") else "cat {input.r2}"
+
     if LIB_TYPE == "rf":
-      options += " <({ZCAT} {input.r1} | {REVCOMP}) <({ZCAT} {input.r2})"
+      options += " <(%s | {REVCOMP}) <(%s)" % (r1_pipe, r2_pipe)
       shell("echo -e \"R1 is rev comp\n\" >>{log.exec_time}")
     elif LIB_TYPE == "fr":
-      options += " <({ZCAT} {input.r1}) <({ZCAT} {input.r2} | {REVCOMP})"
+      options += " <(%s) <(%s | {REVCOMP})" % (r1_pipe, r2_pipe)
       shell("echo -e \"R2 is rev comp\n\" >>{log.exec_time}")
     elif LIB_TYPE == "unstranded":
-      options += " -C <({ZCAT} {input.r1}) <({ZCAT} {input.r2})"
+      options += " -C <(%s) <(%s)" % (r1_pipe, r2_pipe)
     else:
       sys.exit('Unknown library type')
 
